@@ -132,7 +132,7 @@ body::before {
   z-index: -1;
   background:
     linear-gradient(var(--veil-1), var(--veil-2)),
-    url('../assets/bg.jpg') center / cover no-repeat;
+    url('../assets/bg.webp') center / cover no-repeat;
   filter: var(--bg-filter);
   transform: scale(1.01);
 }

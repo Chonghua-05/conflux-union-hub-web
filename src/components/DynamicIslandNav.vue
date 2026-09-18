@@ -45,7 +45,7 @@ onUnmounted(() => {
     <nav class="island">
       <a class="brand" href="#top" aria-label="回到顶部">
         <span class="brand-mark" aria-hidden="true"></span>
-        <strong class="brand-name">hub</strong>
+        <strong class="brand-name">Hub</strong>
       </a>
 
       <div class="links">
