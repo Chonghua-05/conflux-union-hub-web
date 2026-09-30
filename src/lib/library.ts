@@ -12,8 +12,11 @@ export const REF = 'main'
 export const REPO_URL = `https://github.com/${OWNER}/${REPO}`
 export const SITE_URL = 'https://cxu.world'
 
-const GH_API = `https://api.github.com/repos/${OWNER}/${REPO}`
-const GH_HEADERS = { Accept: 'application/vnd.github+json' }
+// 图片清单由香港服务器每 ~3 分钟从 GitHub 拉取一次并缓存在本站静态 JSON，
+// 浏览器只读该文件，不再直接调用 api.github.com。
+// 原因：匿名 GitHub API 限额为 60 次/小时/IP，若每名访客都实时查询（每次 2 个请求）
+// 会很快耗尽并报 “GitHub commit lookup failed: 403”；放到服务端后由单一 IP 缓存复用。
+const MANIFEST_URL = '/api/manifest.json'
 
 const IMAGE_EXT = /\.(png|jpe?g|gif|webp|svg|avif)$/i
 
@@ -35,16 +38,18 @@ interface TreeNode {
   type: string
 }
 
-export async function fetchLibrary(): Promise<HubImage[]> {
-  // 1) 取 main 最新提交 SHA（实时请求，走 GitHub API，不受 jsDelivr 分支缓存影响）
-  const commitRes = await fetch(`${GH_API}/commits/${REF}`, { headers: GH_HEADERS })
-  if (!commitRes.ok) throw new Error(`GitHub commit lookup failed: ${commitRes.status}`)
-  const sha: string = (await commitRes.json()).sha
+interface Manifest {
+  sha: string
+  tree: TreeNode[]
+}
 
-  // 2) 取该提交的完整文件树
-  const treeRes = await fetch(`${GH_API}/git/trees/${sha}?recursive=1`, { headers: GH_HEADERS })
-  if (!treeRes.ok) throw new Error(`GitHub tree lookup failed: ${treeRes.status}`)
-  const tree: TreeNode[] = (await treeRes.json()).tree ?? []
+export async function fetchLibrary(): Promise<HubImage[]> {
+  // 读取服务端缓存的清单（含最新 commit SHA 与文件树）
+  const res = await fetch(MANIFEST_URL, { cache: 'no-store' })
+  if (!res.ok) throw new Error(`图片清单加载失败: ${res.status}`)
+  const data: Manifest = await res.json()
+  const sha = data.sha
+  const tree: TreeNode[] = data.tree ?? []
 
   return tree
     .filter((t) => t.type === 'blob' && IMAGE_EXT.test(t.path))
