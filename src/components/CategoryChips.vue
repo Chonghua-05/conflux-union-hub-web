@@ -38,6 +38,43 @@ watch(
 )
 
 let resizeObserver: ResizeObserver | undefined
+let scrollRaf: number | null = null
+
+function startAutoScroll(direction: 'left' | 'right') {
+  stopAutoScroll()
+  const step = () => {
+    const el = track.value
+    if (!el) return
+    const speed = direction === 'left' ? -7 : 7
+    el.scrollLeft += speed
+    updateEdges()
+
+    if (direction === 'left' && el.scrollLeft <= 0) {
+      stopAutoScroll()
+      return
+    }
+    if (
+      direction === 'right' &&
+      el.scrollLeft + el.clientWidth >= el.scrollWidth - 1
+    ) {
+      stopAutoScroll()
+      return
+    }
+    scrollRaf = requestAnimationFrame(step)
+  }
+  scrollRaf = requestAnimationFrame(step)
+}
+
+function stopAutoScroll() {
+  if (scrollRaf !== null) {
+    cancelAnimationFrame(scrollRaf)
+    scrollRaf = null
+  }
+}
+
+function scrollByOffset(offset: number) {
+  track.value?.scrollBy({ left: offset, behavior: 'smooth' })
+}
 
 onMounted(() => {
   updateEdges()
@@ -46,7 +83,11 @@ onMounted(() => {
     resizeObserver.observe(track.value)
   }
 })
-onUnmounted(() => resizeObserver?.disconnect())
+
+onUnmounted(() => {
+  stopAutoScroll()
+  resizeObserver?.disconnect()
+})
 
 function onWheel(e: WheelEvent) {
   if (!track.value || Math.abs(e.deltaX) >= Math.abs(e.deltaY)) return
@@ -57,29 +98,57 @@ function onWheel(e: WheelEvent) {
 
 <template>
   <div class="rail">
-    <div
-      ref="track"
-      class="chips"
-      :class="{ 'fade-l': fadeL, 'fade-r': fadeR }"
-      role="tablist"
-      aria-label="按仓库目录分类"
-      @wheel="onWheel"
-      @scroll.passive="updateEdges"
-    >
-      <button
-        v-for="c in categories"
-        :key="c.name"
-        class="chip"
-        :class="{ on: c.name === active }"
-        :data-cat="c.name"
-        role="tab"
-        :aria-selected="c.name === active"
-        type="button"
-        @click="emit('select', c.name)"
+    <div class="rail-box">
+      <!-- 左侧悬停自动滚动区域 -->
+      <div
+        class="scroll-zone left"
+        :class="{ visible: fadeL }"
+        aria-hidden="true"
+        title="向左滚动"
+        @mouseenter="startAutoScroll('left')"
+        @mouseleave="stopAutoScroll"
+        @click="scrollByOffset(-260)"
       >
-        {{ c.name }}
-        <span class="count">{{ c.count }}</span>
-      </button>
+        <span class="zone-indicator">‹</span>
+      </div>
+
+      <div
+        ref="track"
+        class="chips"
+        :class="{ 'fade-l': fadeL, 'fade-r': fadeR }"
+        role="tablist"
+        aria-label="按仓库目录分类"
+        @wheel="onWheel"
+        @scroll.passive="updateEdges"
+      >
+        <button
+          v-for="c in categories"
+          :key="c.name"
+          class="chip"
+          :class="{ on: c.name === active }"
+          :data-cat="c.name"
+          role="tab"
+          :aria-selected="c.name === active"
+          type="button"
+          @click="emit('select', c.name)"
+        >
+          {{ c.name }}
+          <span class="count">{{ c.count }}</span>
+        </button>
+      </div>
+
+      <!-- 右侧悬停自动滚动区域 -->
+      <div
+        class="scroll-zone right"
+        :class="{ visible: fadeR }"
+        aria-hidden="true"
+        title="向右滚动"
+        @mouseenter="startAutoScroll('right')"
+        @mouseleave="stopAutoScroll"
+        @click="scrollByOffset(260)"
+      >
+        <span class="zone-indicator">›</span>
+      </div>
     </div>
   </div>
 </template>
@@ -89,6 +158,79 @@ function onWheel(e: WheelEvent) {
   max-width: 1028px;
   margin: 0 auto 40px;
   padding: 0 24px;
+}
+
+.rail-box {
+  position: relative;
+  width: 100%;
+}
+
+.scroll-zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 48px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease, background 0.25s ease;
+  cursor: pointer;
+  user-select: none;
+}
+
+.scroll-zone.left {
+  left: 0;
+  background: linear-gradient(90deg, var(--canvas, #eef5fa) 35%, transparent);
+}
+
+.scroll-zone.right {
+  right: 0;
+  background: linear-gradient(270deg, var(--canvas, #eef5fa) 35%, transparent);
+}
+
+.scroll-zone.visible {
+  opacity: 0.75;
+  pointer-events: auto;
+}
+
+.scroll-zone.visible:hover {
+  opacity: 1;
+}
+
+.zone-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--shell-strong, rgba(255, 255, 255, 0.72));
+  border: 1px solid var(--hair);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  color: var(--aqua-600);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  transition: transform 0.2s var(--ease-spring), background 0.2s ease;
+}
+
+.scroll-zone.left:hover .zone-indicator {
+  transform: translateX(-2px) scale(1.08);
+  background: var(--hover-tint);
+}
+
+.scroll-zone.right:hover .zone-indicator {
+  transform: translateX(2px) scale(1.08);
+  background: var(--hover-tint);
+}
+
+@media (hover: none) {
+  .scroll-zone {
+    display: none;
+  }
 }
 
 .chips {

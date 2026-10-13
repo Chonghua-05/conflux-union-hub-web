@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { REPO_URL, SITE_URL } from '../lib/library'
+import { REPO_URL, SITE_URL, WEB_REPO_URL } from '../lib/library'
 </script>
 
 <template>
@@ -19,8 +19,9 @@ import { REPO_URL, SITE_URL } from '../lib/library'
 
         <nav class="col">
           <h4>前往</h4>
-          <a :href="SITE_URL" target="_blank" rel="noopener">.cxu.world 官网</a>
-          <a :href="REPO_URL" target="_blank" rel="noopener">GitHub 仓库</a>
+          <a :href="SITE_URL" target="_blank" rel="noopener">cxu.world 官网</a>
+          <a :href="REPO_URL" target="_blank" rel="noopener">图片仓库 (GitHub)</a>
+          <a :href="WEB_REPO_URL" target="_blank" rel="noopener">网站源码 (GitHub)</a>
           <a :href="`${REPO_URL}/issues/new`" target="_blank" rel="noopener">提交图片 / 反馈</a>
           <a href="#top">回到顶部 ↑</a>
         </nav>

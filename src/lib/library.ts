@@ -10,6 +10,7 @@ export const REPO = 'Conflux-Union-Hub'
 export const REF = 'main'
 
 export const REPO_URL = `https://github.com/${OWNER}/${REPO}`
+export const WEB_REPO_URL = 'https://github.com/Chonghua-05/conflux-union-hub-web'
 export const SITE_URL = 'https://cxu.world'
 
 // 图片清单由香港服务器每 ~3 分钟从 GitHub 拉取一次并缓存在本站静态 JSON，
